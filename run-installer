@@ -1,0 +1,13 @@
+#!/bin/sh
+#aports/scripts/run-installer
+
+ROOT_DEV=$(awk '$2 == "/" {print $1}' /proc/mounts)
+case "$ROOT_DEV" in
+    /dev/sd*|/dev/vd*|/dev/nvme*)
+        exec /sbin/getty 38400 tty1
+        ;;
+esac
+
+#mv /etc/setup-alpine /usr/sbin/setup-alpine
+/usr/sbin/setup-alpine
+reboot
