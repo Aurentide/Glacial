@@ -1,0 +1,59 @@
+#!/bin/sh
+# aports/scripts/bastion-setup.start
+
+#Phase Guard
+ROOT_DEV=$(awk '$2 == "/" {print $1}' /proc/mounts)
+case "$ROOT_DEV" in
+    /dev/sd*|/dev/vd*|/dev/nvme*)
+        #Installed, continue
+        ;;
+    *)
+        #bail
+        exit 0
+        ;;
+esac
+
+#Stop from running every time
+STATE=/var/lib/bastion/installed
+[ -f "$STATE" ] && exit 0
+
+#Runtime Directories
+mkdir -p /usr/libexec/bastion
+mkdir -p /usr/sbin
+mkdir -p /run/bastion/sessions
+mkdir -p /var/lib/bastion
+
+#Bastion CA Group
+addgroup bastionca
+adduser bastion bastionca #FIX, user has to be set dynamically, big security risk
+mkdir -p /run/bastion/sessions
+chown -R bastion:bastionca /run/bastion
+chmod 750 /run/bastion
+chmod 750 /run/bastion/sessions
+
+mkdir -p /home/bastion/.ssh
+chown -R bastion:bastion /home/bastion/.ssh
+chmod 700 /home/bastion/.ssh
+touch /home/bastion/.ssh/known_hosts
+chmod 600 /home/bastion/.ssh/known_hosts
+chown bastion:bastion /home/bastion/.ssh/known_hosts
+log "bastion user home directory configured."
+
+#Move /usr/libexec/bastion
+
+cp /etc/usr/libexec/bastion/* /usr/libexec/bastion/
+chmod 755 /usr/libexec/bastion/*
+
+#Move bastion-ui
+cp /etc/usr/sbin/bastion-ui /usr/sbin/bastion-ui
+chmod 755 /usr/sbin/bastion-ui
+
+#Patch inittab
+sed -i 's|tty1::once:/etc/run-installer|tty1::respawn:/sbin/getty 38400 tty1|' /etc/inittab \
+kill -HUP 1
+
+#Remove Installer Service
+rc-update del setup-firstboot default 2>/dev/null
+
+#Mark First Boot Complete
+touch "$STATE"
