@@ -1,0 +1,15 @@
+# /etc/ssh/sshd_config
+
+# Admin user
+Match User bastion-admin
+    ForceCommand /usr/sbin/bastion-ui
+    PermitTTY yes
+    AllowTcpForwarding no
+    X11Forwarding no
+
+# Regular users
+Match User bastion
+    ForceCommand /usr/libexec/bastion/broker-wrapper
+    PermitTTY yes
+    AllowTcpForwarding no
+    X11Forwarding no
