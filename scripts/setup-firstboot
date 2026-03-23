@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+# aports/scripts/setup-firstboot
+
+pidfile=/run/setup-firstboot.pid
+
+depend() {
+    after syslog
+    before local
+}
+
+start() {
+    ebegin "Installer environment ready"
+    eend 0
+}
