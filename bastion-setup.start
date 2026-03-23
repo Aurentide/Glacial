@@ -31,6 +31,14 @@ chown -R bastion:bastionca /run/bastion
 chmod 750 /run/bastion
 chmod 750 /run/bastion/sessions
 
+mkdir -p /home/bastion/.ssh
+chown -R bastion:bastion /home/bastion/.ssh
+chmod 700 /home/bastion/.ssh
+touch /home/bastion/.ssh/known_hosts
+chmod 600 /home/bastion/.ssh/known_hosts
+chown bastion:bastion /home/bastion/.ssh/known_hosts
+log "bastion user home directory configured."
+
 #Move /usr/libexec/bastion
 
 cp /etc/usr/libexec/bastion/* /usr/libexec/bastion/
