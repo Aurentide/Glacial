@@ -1,0 +1,34 @@
+#!/bin/sh
+# aports/scripts/stage/usr/sbin/bastion-ui
+
+pause() {
+    echo ""
+    read -r -p "Press enter to continue..." _
+}
+
+while true; do
+    clear
+    echo "=== GLACIAL BASTION ADMIN MENU ==="
+    echo ""
+    echo "1) System Hardening"
+    echo "2) SSH CA Initialization"
+    echo "3) Target Enrollment"
+    echo "4) Policy Configuration"
+    echo "5) Key Rotation"
+    echo "6) View Audit Logs"
+    echo "7) Finalize Onboarding"
+    echo "8) Exit to shell"
+    echo ""
+    read -r -p "Select option: " choice
+    case "$choice" in
+        1) /usr/libexec/bastion/harden.sh ; pause ;;
+        2) /usr/libexec/bastion/ssh-setup.sh ; pause ;;
+        3) /usr/libexec/bastion/onboarding.sh ; pause ;;
+        4) /usr/libexec/bastion/policy.sh ;;
+        5) /usr/libexec/bastion/keyctl.sh ; pause ;;
+        6) /usr/libexec/bastion/auditlog.sh ; pause ;;
+        7) /usr/libexec/bastion/finalize.sh ; pause ;;
+        8) break ;;
+        *) echo "Invalid choice"; sleep 1 ;;
+    esac
+done
