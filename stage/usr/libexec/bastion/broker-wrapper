@@ -1,0 +1,77 @@
+#!/bin/sh
+# aports/scripts/stage/usr/libexec/bastion/broker-wrapper
+
+check_hardened() {
+    if ! grep -q "BEGIN BASTION HARDENING" /etc/ssh/sshd_config 2>/dev/null; then
+        echo "ERROR: system has not been hardened yet."
+        exit 1
+    fi
+}
+
+check_hardened
+
+TARGET="${SSH_ORIGINAL_COMMAND:-$1}"
+CONNECTING_USER="${LOGNAME:-$USER}"
+POLICY_FILE="/etc/bastion/policy.conf"
+
+[ -z "$TARGET" ] && { echo "Usage: ssh user@bastion <target>"; exit 1; }
+[ ! -f "$POLICY_FILE" ] && { echo "ERROR: policy file not found"; exit 1; }
+
+#Policy Lookup
+get_policy() {
+    local target="[$1]" field="$2"
+    awk -v t="$target" -v f="$field" '
+        $0 == t        { found=1; next }
+        found && /^\[/ { found=0 }
+        found && $1 == f { gsub(/[ \t]/, "", $3); print $3; exit }
+    ' "$POLICY_FILE"
+}
+
+TARGET_USER=$(get_policy "$TARGET" "target_user")
+TTL=$(get_policy "$TARGET" "ttl")
+ALLOWED=$(get_policy "$TARGET" "allowed_users")
+
+[ -z "$TARGET_USER" ] && { echo "ERROR: target '$TARGET' not found in policy.conf"; exit 1; }
+TTL="${TTL:-5m}"
+
+#Access Check
+echo "$ALLOWED" | tr ',' '\n' | grep -qx "$CONNECTING_USER" \
+    || { echo "ERROR: user '$CONNECTING_USER' is not permitted to access '$TARGET'"; exit 1; }
+
+#Session Setup
+SESSION_ID=$(uuidgen)
+SESSION_DIR="/run/bastion/sessions/$SESSION_ID"
+
+echo "Establishing session to $TARGET as $TARGET_USER (TTL: $TTL)..."
+
+/usr/libexec/bastion/keyctl.sh generate "$SESSION_ID" "$TARGET_USER" "$TTL" \
+    || exit 1
+
+#Connect and Record
+LOG_DIR="/etc/bastion/logs"
+LOG_FILE="$LOG_DIR/${SESSION_ID}_${CONNECTING_USER}_${TARGET}.log"
+
+mkdir -p "$LOG_DIR"
+echo "Session started: $(date)" > "$LOG_FILE"
+echo "User: $CONNECTING_USER | Target: $TARGET | Target user: $TARGET_USER | TTL: $TTL" >> "$LOG_FILE"
+echo "---" >> "$LOG_FILE"
+
+ssh \
+    -t \
+    -i "$SESSION_DIR/ephemeral" \
+    -o CertificateFile="$SESSION_DIR/ephemeral-cert.pub" \
+    -o StrictHostKeyChecking=accept-new \
+    -o IdentitiesOnly=yes \
+    "$TARGET_USER@$TARGET" \
+    /bin/sh \
+    | tee -a "$LOG_FILE"
+
+EXIT_CODE=$?
+
+echo "---" >> "$LOG_FILE"
+echo "Session ended: $(date) | Exit code: $EXIT_CODE" >> "$LOG_FILE"
+
+#Cleanup
+/usr/libexec/bastion/keyctl.sh destroy "$SESSION_ID"
+
+exit $EXIT_CODE
