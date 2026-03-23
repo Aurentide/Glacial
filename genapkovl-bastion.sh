@@ -1,24 +1,3 @@
-#!/bin/sh
-# aports/scripts/mkimg.bastion.sh
-profile_bastion() {
-    profile_virt
-    profile_abbrev="bastion"
-    title="bastion"
-    arch="x86_64 x86"
-    apks="$apks syslinux"
-
-    local _k _a
-    for _k in $kernel_flavors; do
-        apks="$apks linux-$_k"
-        for _a in $kernel_addons; do
-            apks="$apks $_a-$_k"
-        done
-    done
-
-    apks="$apks linux-firmware linux-firmware-none util-linux"
-    apkovl="genapkovl-bastion.sh"
-}
-localhost:~/aports/scripts$ cat genapkovl-bastion.sh
 #!/bin/sh -e
 # aports/scripts/genapkovl-bastion.sh
 
@@ -55,6 +34,8 @@ cp ~/aports/scripts/setup-alpine "$tmp"/etc/setup-alpine
 cp ~/aports/scripts/run-installer "$tmp"/etc/run-installer
 chmod 755 "$tmp"/etc/run-installer
 cp ~/aports/scripts/bastion-setup.start "$tmp"/etc/local.d/bastion-setup.start
+cp ~/aports/scripts/bastion-runtime.start "$tmp"/etc/local.d/bastion-runtime.start
+chmod 755 "$tmp"/etc/local.d/bastion-runtime.start
 cp -a ~/aports/scripts/stage/* "$tmp"/etc
 
 makefile root:root 0644 "$tmp"/etc/hostname <<EOF
