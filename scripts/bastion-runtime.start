@@ -1,0 +1,8 @@
+#!/bin/sh
+# Recreates volatile runtime directories on every boot.
+# /run is tmpfs and does not persist across reboots.
+
+mkdir -p /run/bastion/sessions
+chown -R bastion:bastionca /run/bastion
+chmod 750 /run/bastion
+chmod 750 /run/bastion/sessions
